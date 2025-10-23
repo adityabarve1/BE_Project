@@ -1,0 +1,85 @@
+```mermaid
+graph TB
+    subgraph "Client Layer"
+        A[React Frontend<br/>Port 3000]
+        A1[Login/Register]
+        A2[Teacher Dashboard]
+        A3[Student Management]
+        A4[CSV Upload]
+        A5[Risk Visualization]
+        
+        A --> A1
+        A --> A2
+        A --> A3
+        A --> A4
+        A --> A5
+    end
+    
+    subgraph "Application Layer"
+        B[FastAPI Backend<br/>Port 8004]
+        B1[Auth Service]
+        B2[ML Prediction Service]
+        B3[Database Service]
+        B4[API Endpoints]
+        
+        B --> B1
+        B --> B2
+        B --> B3
+        B --> B4
+        
+        B1 --> B11[JWT Tokens]
+        B1 --> B12[Session Mgmt]
+        
+        B2 --> B21[TabNet Model]
+        B2 --> B22[Feature Engineering]
+        
+        B3 --> B31[CRUD Operations]
+        B3 --> B32[Analytics]
+    end
+    
+    subgraph "Data Layer"
+        C[Supabase PostgreSQL]
+        C1[Core Tables]
+        C2[Support Tables]
+        C3[Auth System]
+        
+        C --> C1
+        C --> C2
+        C --> C3
+        
+        C1 --> C11[students]
+        C1 --> C12[predictions]
+        C1 --> C13[teacher_profiles]
+        
+        C2 --> C21[attendance]
+        C2 --> C22[academic_records]
+        C2 --> C23[interventions]
+        C2 --> C24[financial_records]
+        C2 --> C25[extracurricular]
+    end
+    
+    subgraph "ML Layer"
+        D[TabNet Architecture]
+        D1[Feature Transformer]
+        D2[Attention Mechanism]
+        D3[Decision Steps]
+        D4[Output Layer]
+        
+        D --> D1
+        D1 --> D2
+        D2 --> D3
+        D3 --> D4
+        
+        D4 --> D41[Risk Score]
+        D4 --> D42[Feature Importance]
+    end
+    
+    A -->|HTTPS/REST| B
+    B -->|Supabase SDK| C
+    B2 -->|Prediction Request| D
+    D -->|Results| B2
+    
+    style A fill:#e1f5ff
+    style B fill:#fff3e0
+    style C fill:#f3e5f5
+    style D fill:#e8f5e9
