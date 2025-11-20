@@ -10,7 +10,23 @@ from typing import List, Dict, Any, Optional
 from enum import Enum
 import os
 from datetime import datetime
+from dotenv import load_dotenv
 from auth_service import auth_service
+from database_service import DatabaseService
+from supabase import create_client, Client
+
+# Load environment variables from .env file
+load_dotenv()
+
+# Initialize Supabase client and database service
+supabase_url = os.getenv("SUPABASE_URL")
+supabase_key = os.getenv("SUPABASE_SERVICE_ROLE_KEY")  # Use service role for admin operations
+
+if not supabase_url or not supabase_key:
+    raise ValueError("Missing Supabase configuration. Please check SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY environment variables.")
+
+supabase: Client = create_client(supabase_url, supabase_key)
+db_service = DatabaseService(supabase)
 
 app = FastAPI(
     title="Student Dropout Prediction System API",
@@ -247,61 +263,81 @@ async def get_me(current_user: Dict = Depends(get_current_user)):
 @app.get("/api/v1/dashboard/stats")
 async def get_dashboard_stats(current_user: Dict = Depends(get_current_user)):
     """
-    Get dashboard statistics
+    Get dashboard statistics from database
     
     Requires authentication
     """
-    # TODO: Implement real statistics from database
-    return {
-        "total_students": 1250,
-        "high_risk_students": 87,
-        "medium_risk_students": 234,
-        "low_risk_students": 929,
-        "average_attendance": 87.5,
-        "recent_predictions": 42
-    }
+    try:
+        # Get all students for statistics
+        all_students = await db_service.get_all_students(active_only=True)
+        
+        total_students = len(all_students)
+        
+        # Count by risk levels
+        high_risk = len([s for s in all_students if s.get("dropout_risk_level") == "high"])
+        medium_risk = len([s for s in all_students if s.get("dropout_risk_level") == "medium"])
+        low_risk = len([s for s in all_students if s.get("dropout_risk_level") == "low"])
+        
+        # Calculate average GPA
+        gpas = [s.get("current_gpa", 0) for s in all_students if s.get("current_gpa")]
+        average_gpa = sum(gpas) / len(gpas) if gpas else 0.0
+        
+        # Get recent predictions count (you might want to implement this in database service)
+        recent_predictions = high_risk + medium_risk  # Simplified for now
+        
+        return {
+            "total_students": total_students,
+            "high_risk_students": high_risk,
+            "medium_risk_students": medium_risk,
+            "low_risk_students": low_risk,
+            "average_gpa": round(average_gpa, 2),
+            "recent_predictions": recent_predictions
+        }
+        
+    except Exception as e:
+        print(f"Error fetching dashboard stats: {e}")
+        # Return default stats if there's an error
+        return {
+            "total_students": 0,
+            "high_risk_students": 0,
+            "medium_risk_students": 0,
+            "low_risk_students": 0,
+            "average_gpa": 0.0,
+            "recent_predictions": 0
+        }
 
 
 @app.get("/api/v1/dashboard/high-risk-students")
 async def get_high_risk_students(current_user: Dict = Depends(get_current_user)):
     """
-    Get list of high-risk students
+    Get list of high-risk students from database
     
     Requires authentication
     """
-    # TODO: Implement real data from database and ML predictions
-    return [
-        {
-            "id": "1",
-            "name": "John Doe",
-            "roll_number": "CS2021001",
-            "risk_level": "high",
-            "risk_score": 0.85,
-            "attendance": 65.0,
-            "gpa": 2.1,
-            "prediction_date": "2025-10-19"
-        },
-        {
-            "id": "2",
-            "name": "Jane Smith",
-            "roll_number": "CS2021002",
-            "risk_level": "high",
-            "risk_score": 0.78,
-            "attendance": 70.0,
-            "gpa": 2.3,
-            "prediction_date": "2025-10-19"
-        },
-        {
-            "id": "3",
-            "name": "Bob Johnson",
-            "roll_number": "CS2021003",
-            "risk_level": "high",
-            "risk_score": 0.72,
-            "attendance": 68.0,
-            "gpa": 2.5,
-            "prediction_date": "2025-10-18"
-        }
-    ]
+    try:
+        high_risk_students = await db_service.get_high_risk_students()
+        
+        formatted_students = []
+        for student in high_risk_students:
+            formatted_student = {
+                "id": student.get("id"),
+                "name": student.get("name"),
+                "roll_number": student.get("roll_number"),
+                "risk_level": student.get("dropout_risk_level", "high"),
+                "risk_score": student.get("dropout_risk_score", 0.0),
+                "gpa": student.get("current_gpa", 0.0),
+                "program": student.get("program"),
+                "semester": student.get("semester"),
+                "prediction_date": student.get("updated_at", datetime.now().isoformat())
+            }
+            formatted_students.append(formatted_student)
+            
+        return formatted_students
+        
+    except Exception as e:
+        print(f"Error fetching high-risk students: {e}")
+        # Return empty list if there's an error, don't break the dashboard
+        return []
 
 
 @app.get("/api/v1/dashboard/recent-predictions")
@@ -337,55 +373,153 @@ async def get_recent_predictions(current_user: Dict = Depends(get_current_user))
 @app.get("/api/v1/students")
 async def get_students(current_user: Dict = Depends(get_current_user)):
     """
-    Get all students
+    Get all students from database
     
     Requires authentication
     """
-    # TODO: Implement real data from database
-    return [
-        {
-            "id": "1",
-            "name": "John Doe",
-            "roll_number": "CS2021001",
-            "email": "john.doe@example.com",
-            "attendance": 65.0,
-            "gpa": 2.1,
-            "risk_level": "high"
-        },
-        {
-            "id": "2",
-            "name": "Jane Smith",
-            "roll_number": "CS2021002",
-            "email": "jane.smith@example.com",
-            "attendance": 70.0,
-            "gpa": 2.3,
-            "risk_level": "high"
-        }
-    ]
+    try:
+        students = await db_service.get_all_students(active_only=True)
+        
+        # Transform database format to frontend format
+        formatted_students = []
+        for student in students:
+            formatted_student = {
+                "id": student.get("id"),
+                "name": student.get("name"),
+                "roll_number": student.get("roll_number"),
+                "email": student.get("email"),
+                "phone": student.get("phone"),
+                "gender": student.get("gender"),
+                "program": student.get("program"),
+                "semester": student.get("semester"),
+                "current_gpa": student.get("current_gpa", 0.0),
+                "overall_gpa": student.get("overall_gpa", 0.0),
+                "credits_completed": student.get("credits_completed", 0),
+                "dropout_risk_level": student.get("dropout_risk_level", "low"),
+                "dropout_risk_score": student.get("dropout_risk_score", 0.0),
+                "is_active": student.get("is_active", True),
+                "created_at": student.get("created_at"),
+                "updated_at": student.get("updated_at"),
+                # Legacy fields for frontend compatibility
+                "gpa": student.get("current_gpa", 0.0),
+                "risk_level": student.get("dropout_risk_level", "low"),
+                "department": student.get("program", "Unknown")
+            }
+            formatted_students.append(formatted_student)
+            
+        return formatted_students
+        
+    except Exception as e:
+        print(f"Error fetching students: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to fetch students: {str(e)}"
+        )
 
 
 @app.get("/api/v1/students/{student_id}")
 async def get_student(student_id: str, current_user: Dict = Depends(get_current_user)):
     """
-    Get student by ID
+    Get student by ID from database
     
     Requires authentication
     """
-    # TODO: Implement real data from database
-    return {
-        "id": student_id,
-        "name": "John Doe",
-        "roll_number": "CS2021001",
-        "email": "john.doe@example.com",
-        "attendance": 65.0,
-        "gpa": 2.1,
-        "risk_level": "high",
-        "risk_score": 0.85,
-        "prediction_history": [
-            {"date": "2025-10-15", "risk_score": 0.82},
-            {"date": "2025-10-19", "risk_score": 0.85}
-        ]
-    }
+    try:
+        student = await db_service.get_student_by_id(student_id)
+        
+        if not student:
+            raise HTTPException(
+                status_code=404,
+                detail="Student not found"
+            )
+            
+        # Get additional data
+        predictions = await db_service.get_student_predictions(student_id, limit=10)
+        
+        formatted_student = {
+            "id": student.get("id"),
+            "name": student.get("name"),
+            "roll_number": student.get("roll_number"),
+            "email": student.get("email"),
+            "phone": student.get("phone"),
+            "gender": student.get("gender"),
+            "date_of_birth": student.get("date_of_birth"),
+            "address": student.get("address"),
+            "program": student.get("program"),
+            "semester": student.get("semester"),
+            "admission_date": student.get("admission_date"),
+            "current_gpa": student.get("current_gpa", 0.0),
+            "overall_gpa": student.get("overall_gpa", 0.0),
+            "credits_completed": student.get("credits_completed", 0),
+            "dropout_risk_level": student.get("dropout_risk_level", "low"),
+            "dropout_risk_score": student.get("dropout_risk_score", 0.0),
+            "guardian_name": student.get("guardian_name"),
+            "guardian_phone": student.get("guardian_phone"),
+            "emergency_contact": student.get("emergency_contact"),
+            "blood_group": student.get("blood_group"),
+            "nationality": student.get("nationality"),
+            "category": student.get("category"),
+            "is_active": student.get("is_active", True),
+            "created_at": student.get("created_at"),
+            "updated_at": student.get("updated_at"),
+            # Legacy fields for frontend compatibility
+            "gpa": student.get("current_gpa", 0.0),
+            "risk_level": student.get("dropout_risk_level", "low"),
+            "risk_score": student.get("dropout_risk_score", 0.0),
+            "prediction_history": predictions
+        }
+        
+        return formatted_student
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error fetching student {student_id}: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to fetch student: {str(e)}"
+        )
+
+
+@app.post("/api/v1/students")
+async def create_student(student_data: dict, current_user: Dict = Depends(get_current_user)):
+    """
+    Create a new student in database
+    
+    Requires authentication
+    """
+    try:
+        # Check if student with same roll number already exists
+        existing_student = await db_service.get_student_by_roll_number(student_data.get("roll_number"))
+        if existing_student:
+            raise HTTPException(
+                status_code=400,
+                detail="Student with this roll number already exists"
+            )
+        
+        # Create student record in database
+        result = await db_service.create_student(student_data)
+        
+        if not result.get("success"):
+            raise HTTPException(
+                status_code=400,
+                detail=result.get("error", "Failed to create student")
+            )
+            
+        return {
+            "success": True,
+            "message": "Student created successfully",
+            "data": result.get("data")
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error creating student: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Internal server error: {str(e)}"
+        )
 
 
 # ============================================================================

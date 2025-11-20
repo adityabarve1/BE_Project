@@ -34,7 +34,7 @@ import {
   ModalBody,
   ModalCloseButton,
 } from '@chakra-ui/react';
-import { FaSearch, FaSort, FaSortUp, FaSortDown, FaEye } from 'react-icons/fa';
+import { FaSearch, FaSort, FaSortUp, FaSortDown, FaEye, FaPlus } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { apiService } from '../services/api';
@@ -202,10 +202,20 @@ const StudentList: React.FC = () => {
   return (
     <Container maxW="container.xl" py={6}>
       <Stack spacing={6}>
-        <Box>
-          <Heading size="lg">Student List</Heading>
-          <Text color="gray.500">View and manage all student risk predictions</Text>
-        </Box>
+        <Flex justifyContent="space-between" alignItems="center" flexWrap="wrap" gap={4}>
+          <Box>
+            <Heading size="lg">Student List</Heading>
+            <Text color="gray.500">View and manage all student risk predictions</Text>
+          </Box>
+          <Button 
+            leftIcon={<FaPlus />} 
+            colorScheme="blue" 
+            onClick={() => navigate('/students/add')}
+            size="md"
+          >
+            Add Student
+          </Button>
+        </Flex>
         
         <Flex 
           direction={{ base: 'column', md: 'row' }} 

@@ -238,6 +238,10 @@ export const getStudentActivities = async (id: string) => {
   return apiCall(`/students/${id}/activities`);
 };
 
+export const createStudent = async (studentData: any) => {
+  return apiCall('/students', 'POST', studentData);
+};
+
 // Export API service object with all the functions
 export const apiService = {
   getDashboardStats,
@@ -249,5 +253,6 @@ export const apiService = {
   getStudentPredictions,
   getStudentAttendance,
   getStudentAcademic,
-  getStudentActivities
+  getStudentActivities,
+  createStudent
 };

@@ -74,7 +74,7 @@ const Sidebar: React.FC = () => {
     >
       <Flex h="20" alignItems="center" mx="8" justifyContent="space-between">
         <Text fontSize="2xl" fontWeight="bold" color={useColorModeValue('blue.600', 'blue.400')}>
-          StayInCollage
+          StayInSchool
         </Text>
       </Flex>
       <VStack spacing={1} align="stretch" mt={6}>
@@ -92,6 +92,14 @@ const Sidebar: React.FC = () => {
           isActive={isCurrentPath('/students') || location.pathname.startsWith('/students/')}
         >
           Students
+        </NavItem>
+        
+        <NavItem 
+          icon={FaChalkboardTeacher} 
+          to="/students/add" 
+          isActive={isCurrentPath('/students/add')}
+        >
+          Add Student
         </NavItem>
         
         <NavItem 

@@ -6,6 +6,7 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 // Import pages
 import Login from './pages/Login';
 import Register from './pages/Register';
+import StudentRegister from './pages/StudentRegister';
 import TeacherDashboard from './pages/TeacherDashboard';
 import StudentList from './pages/StudentList';
 import StudentDetail from './pages/StudentDetail';
@@ -102,6 +103,17 @@ function App() {
                 <ProtectedRoute>
                   <MainLayout>
                     <StudentList />
+                  </MainLayout>
+                </ProtectedRoute>
+              } 
+            />
+            
+            <Route 
+              path="/students/add" 
+              element={
+                <ProtectedRoute>
+                  <MainLayout>
+                    <StudentRegister />
                   </MainLayout>
                 </ProtectedRoute>
               } 
