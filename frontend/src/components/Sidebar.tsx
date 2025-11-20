@@ -74,7 +74,7 @@ const Sidebar: React.FC = () => {
     >
       <Flex h="20" alignItems="center" mx="8" justifyContent="space-between">
         <Text fontSize="2xl" fontWeight="bold" color={useColorModeValue('blue.600', 'blue.400')}>
-          StayInSchool
+          StayInCollage
         </Text>
       </Flex>
       <VStack spacing={1} align="stretch" mt={6}>
